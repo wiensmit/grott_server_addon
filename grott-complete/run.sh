@@ -81,7 +81,12 @@ bashio::log.info "Generating grott.ini configuration..."
   # --- Growatt section ---
   echo "[Growatt]"
   echo "ip = $(bashio::config 'ggrowattip')"
-  echo "port = $(bashio::config 'ggrowattport')"
+  GROWATT_PORT=$(bashio::config 'ggrowattport')
+  if [ -n "$GROWATT_PORT" ]; then
+    echo "port = ${GROWATT_PORT}"
+  else
+    echo "port = 5781"
+  fi
   echo ""
 
   # --- MQTT section ---

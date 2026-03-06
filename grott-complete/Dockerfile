@@ -28,10 +28,13 @@ RUN apk add --no-cache curl && \
     "https://raw.githubusercontent.com/egguy/grott/feature/ha-extension/examples/Home%20Assistent/grott_ha.py" && \
     apk del curl
 
-# Install Python dependencies
-RUN pip3 install --no-cache-dir --break-system-packages \
+# Install Python dependencies (libscrc needs build tools)
+RUN apk add --no-cache gcc musl-dev python3-dev && \
+    pip3 install --no-cache-dir --break-system-packages \
     paho-mqtt \
-    requests
+    requests \
+    libscrc && \
+    apk del gcc musl-dev python3-dev
 
 WORKDIR /app
 
