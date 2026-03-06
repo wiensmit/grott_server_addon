@@ -1,5 +1,15 @@
 #!/usr/bin/with-contenv bashio
 
-bashio::log.info "Starting Grott server API on port 5782..."
+# Pass verbose setting to grottserver.py via env var
+VERBOSE=$(bashio::config 'verbose')
+export GROTTSERVER_VERBOSE="${VERBOSE}"
+
+bashio::log.info "Starting Grott server API on port 5782 (verbose=${VERBOSE})..."
 cd /app
-exec python3 -u grottserver.py
+
+# When not verbose, redirect stdout to /dev/null (keeps stderr for errors)
+if [ "${VERBOSE}" = "true" ]; then
+    exec python3 -u grottserver.py
+else
+    exec python3 -u grottserver.py > /dev/null
+fi

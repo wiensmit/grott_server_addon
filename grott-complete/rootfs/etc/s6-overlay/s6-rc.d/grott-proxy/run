@@ -1,5 +1,13 @@
 #!/usr/bin/with-contenv bashio
 
-bashio::log.info "Starting Grott proxy on port 5279..."
+VERBOSE=$(bashio::config 'verbose')
+
+bashio::log.info "Starting Grott proxy on port 5279 (verbose=${VERBOSE})..."
 cd /app
-exec python3 -u grott.py -c /app/grott.ini
+
+# When not verbose, redirect stdout to /dev/null (keeps stderr for errors)
+if [ "${VERBOSE}" = "true" ]; then
+    exec python3 -u grott.py -c /app/grott.ini
+else
+    exec python3 -u grott.py -c /app/grott.ini > /dev/null
+fi

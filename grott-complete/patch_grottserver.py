@@ -94,10 +94,25 @@ else:
     print("WARNING: Patch 3 target not found")
 
 # =============================================================================
-# Patch 4: Reduce log noise by guarding unconditional prints with 'if verbose:'.
+# Patch 4: Make verbose configurable via GROTTSERVER_VERBOSE environment variable.
 #
-# Many high-frequency prints (decrypt, data received, data record, etc.) are
-# not behind verbose checks, producing huge logs even with verbose=False.
+# grottserver.py hardcodes verbose = True and ignores grott.ini.
+# Replace with env var check so the addon can control it.
+# =============================================================================
+
+old_verbose = 'verbose = True'
+new_verbose = 'import os\nverbose = os.environ.get("GROTTSERVER_VERBOSE", "false").lower() == "true"'
+
+if old_verbose in code:
+    code = code.replace(old_verbose, new_verbose, 1)
+    print("Patch 4 applied: verbose now reads from GROTTSERVER_VERBOSE env var")
+else:
+    print("WARNING: Patch 4 target not found")
+
+# =============================================================================
+# Patch 5: Guard remaining unconditional high-frequency prints with 'if verbose:'.
+#
+# Even with verbose=False, some prints fire on every record.
 # =============================================================================
 
 noise_patches = [
@@ -116,23 +131,23 @@ noise_patches = [
         '                print("\\t - Grottserver - " + header[12:16] + " data record received")',
         '                if verbose: print("\\t - Grottserver - " + header[12:16] + " data record received")',
     ),
-    # queue response print
+    # queue response print (in process_data)
     (
         '                print("\\t - Grottserver - Put response on queue: ", qname, " msg: ")',
         '                if verbose: print("\\t - Grottserver - Put response on queue: ", qname, " msg: ")',
     ),
 ]
 
-patch4_count = 0
+patch5_count = 0
 for old, new in noise_patches:
     if old in code:
         code = code.replace(old, new)
-        patch4_count += 1
+        patch5_count += 1
 
-if patch4_count > 0:
-    print(f"Patch 4 applied: guarded {patch4_count} noisy prints behind verbose check")
+if patch5_count > 0:
+    print(f"Patch 5 applied: guarded {patch5_count} noisy prints behind verbose check")
 else:
-    print("WARNING: Patch 4 - no noise targets found")
+    print("WARNING: Patch 5 - no noise targets found")
 
 with open('/app/grottserver.py', 'w') as f:
     f.write(code)
