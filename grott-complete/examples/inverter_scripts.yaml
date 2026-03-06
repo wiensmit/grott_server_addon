@@ -1,0 +1,180 @@
+# =============================================================================
+# Growatt Inverter Control - Home Assistant Configuration Example
+# =============================================================================
+# Copy the relevant sections into your HA configuration.yaml.
+#
+# Replace YOUR_INVERTER_1, YOUR_INVERTER_2, etc. with your actual
+# inverter serial numbers (e.g., BLK4CBJ08S).
+#
+# The Grott Complete addon exposes the API at localhost:5782.
+# =============================================================================
+
+# --- REST Sensors: Read current power limit from each inverter ---
+# Add one sensor per inverter. Duplicate and change the serial number.
+
+sensor:
+  - platform: rest
+    name: "Inverter Power Limit YOUR_INVERTER_1"
+    resource: "http://localhost:5782/inverter?command=register&register=03&inverter=YOUR_INVERTER_1&format=dec"
+    method: GET
+    value_template: "{{ value_json.value }}"
+    unit_of_measurement: "%"
+    scan_interval: 60
+
+  # Add more sensors for additional inverters:
+  # - platform: rest
+  #   name: "Inverter Power Limit YOUR_INVERTER_2"
+  #   resource: "http://localhost:5782/inverter?command=register&register=03&inverter=YOUR_INVERTER_2&format=dec"
+  #   method: GET
+  #   value_template: "{{ value_json.value }}"
+  #   unit_of_measurement: "%"
+  #   scan_interval: 60
+
+
+# --- REST Command: Set inverter power limit ---
+
+rest_command:
+  inverter_set_power_limit:
+    url: "http://localhost:5782/inverter?command=register&register=03&inverter={{ inverter }}&value={{ value }}&format=dec"
+    method: PUT
+    timeout: 30
+
+
+# --- Scripts ---
+
+script:
+
+  # Core script: Set power limit with retry and verification
+  # Works with any inverter serial - pass it as a parameter.
+  set_inverter_power_limit_retry:
+    alias: "Set Inverter Power Limit (with retry)"
+    description: >
+      Sets power limit with verification. Use 1 for off, 100 for on.
+      Never use 0 - it can break the inverter configuration.
+    fields:
+      inverter:
+        description: "Inverter serial number"
+        example: "YOUR_INVERTER_1"
+        required: true
+      power_limit:
+        description: "Power limit percentage (1-100, never 0)"
+        example: 100
+        required: true
+        selector:
+          number:
+            min: 1
+            max: 100
+      retries:
+        description: "Number of retry attempts"
+        default: 3
+        selector:
+          number:
+            min: 1
+            max: 10
+      retry_delay:
+        description: "Delay between retries in seconds"
+        default: 10
+        selector:
+          number:
+            min: 5
+            max: 60
+    sequence:
+      - variables:
+          target: "{{ power_limit | int }}"
+          sensor_entity: "sensor.inverter_power_limit_{{ inverter | lower }}"
+
+      - repeat:
+          count: "{{ retries | int(3) }}"
+          sequence:
+            # Send the command
+            - action: rest_command.inverter_set_power_limit
+              data:
+                inverter: "{{ inverter }}"
+                value: "{{ target }}"
+
+            # Wait for inverter to process
+            - delay:
+                seconds: "{{ retry_delay }}"
+
+            # Force sensor refresh
+            - action: homeassistant.update_entity
+              target:
+                entity_id: "{{ sensor_entity }}"
+
+            # Small delay for state propagation
+            - delay:
+                seconds: 2
+
+            # Check result
+            - if:
+                - condition: template
+                  value_template: >
+                    {{ states(sensor_entity) | int(default=-1) == target }}
+              then:
+                - action: system_log.write
+                  data:
+                    message: >
+                      Inverter {{ inverter }} power limit confirmed at {{ target }}%
+                      on attempt {{ repeat.index }}
+                    level: info
+                - stop: "Success - power limit confirmed"
+
+            # Log retry if not last attempt
+            - if:
+                - condition: template
+                  value_template: "{{ repeat.index < (retries | int(3)) }}"
+              then:
+                - action: system_log.write
+                  data:
+                    message: >
+                      Inverter {{ inverter }} not yet at {{ target }}%
+                      (current: {{ states(sensor_entity) }}) -
+                      attempt {{ repeat.index }} of {{ retries }}
+                    level: warning
+
+      # All retries exhausted
+      - action: system_log.write
+        data:
+          message: >
+            FAILED to set inverter {{ inverter }} power limit to {{ target }}%
+            after {{ retries }} attempts. Current: {{ states(sensor_entity) }}
+          level: error
+      - action: persistent_notification.create
+        data:
+          title: "Inverter Command Failed"
+          message: >
+            Failed to set {{ inverter }} to {{ target }}% after {{ retries }} attempts.
+            Current reading: {{ states(sensor_entity) }}%
+          notification_id: "inverter_fail_{{ inverter }}"
+
+
+  # --- Example convenience scripts ---
+  # Customize these with your own inverter serials.
+
+  # turn_off_all_inverters:
+  #   alias: "Turn Off All Inverters"
+  #   description: "Sets all inverters to 1% power limit"
+  #   sequence:
+  #     - parallel:
+  #         - action: script.set_inverter_power_limit_retry
+  #           data:
+  #             inverter: "YOUR_INVERTER_1"
+  #             power_limit: 1
+  #         - action: script.set_inverter_power_limit_retry
+  #           data:
+  #             inverter: "YOUR_INVERTER_2"
+  #             power_limit: 1
+
+  # turn_on_all_inverters:
+  #   alias: "Turn On All Inverters"
+  #   description: "Sets all inverters to 100% power limit"
+  #   sequence:
+  #     - parallel:
+  #         - action: script.set_inverter_power_limit_retry
+  #           data:
+  #             inverter: "YOUR_INVERTER_1"
+  #             power_limit: 100
+  #         - action: script.set_inverter_power_limit_retry
+  #           data:
+  #             inverter: "YOUR_INVERTER_2"
+  #             power_limit: 100

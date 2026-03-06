@@ -2,7 +2,7 @@ name: "Grott Complete"
 version: "1.0.0"
 slug: grott_complete
 description: "Growatt inverter monitor with proxy and server API for register read/write control"
-url: https://github.com/yourusername/grott_server_addon
+url: https://github.com/wiensmit/grott_server_addon
 arch:
   - aarch64
   - amd64

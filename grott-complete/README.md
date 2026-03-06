@@ -29,6 +29,20 @@ Most settings auto-detect. The key options:
 
 **MQTT** is auto-detected from the Mosquitto addon. No manual MQTT config needed.
 
+## Inverter Control Scripts
+
+Example Home Assistant scripts for controlling inverter power limits are included in the `examples/` folder.
+
+See [`examples/inverter_scripts.yaml`](examples/inverter_scripts.yaml) for:
+- **REST sensors** to read current power limit from each inverter
+- **REST command** to set power limits
+- **Retry script** that sends a command and verifies it took effect (with configurable retries)
+- **Convenience scripts** for turning inverters on (100%) and off (1%)
+
+Copy the sections you need into your HA `configuration.yaml` and replace `YOUR_INVERTER_1` etc. with your actual inverter serial numbers.
+
+> **Important:** Never set power limit to 0% — it can break the inverter configuration. Use 1% for "off".
+
 ## Migration from standalone Grott
 
 ### Step 1: Record current state (before changing anything)
@@ -37,12 +51,10 @@ From your current Grott server, run:
 
 ```bash
 # Get datalogger serial numbers
-curl -X GET "http://192.168.2.252:5782/datalogger"
+curl -X GET "http://<GROTT_SERVER_IP>:5782/datalogger"
 
-# Record current power limits
-curl -X GET "http://192.168.2.252:5782/inverter?command=register&register=03&inverter=BLK4CBJ08S&format=dec"
-curl -X GET "http://192.168.2.252:5782/inverter?command=register&register=03&inverter=FVJ7CJJ0JS&format=dec"
-curl -X GET "http://192.168.2.252:5782/inverter?command=register&register=03&inverter=FUJ6CFP07S&format=dec"
+# Record current power limits (replace <INVERTER_SERIAL> with your serial)
+curl -X GET "http://<GROTT_SERVER_IP>:5782/inverter?command=register&register=03&inverter=<INVERTER_SERIAL>&format=dec"
 ```
 
 ### Step 2: Install and start the addon
@@ -56,9 +68,9 @@ Install, configure, and start the addon. Check the addon logs to verify both ser
 Use the existing Grott server API to push new IP to each datalogger:
 
 ```bash
-# Replace <DATALOGGER_SERIAL> with your actual serial
-curl -X PUT "http://192.168.2.252:5782/datalogger?command=register&register=17&datalogger=<DATALOGGER_SERIAL>&value=192.168.2.56"
-curl -X PUT "http://192.168.2.252:5782/datalogger?command=register&register=18&datalogger=<DATALOGGER_SERIAL>&value=5279"
+# Replace <DATALOGGER_SERIAL> with your actual serial and <HA_IP> with your HA IP address
+curl -X PUT "http://<GROTT_SERVER_IP>:5782/datalogger?command=register&register=17&datalogger=<DATALOGGER_SERIAL>&value=<HA_IP>"
+curl -X PUT "http://<GROTT_SERVER_IP>:5782/datalogger?command=register&register=18&datalogger=<DATALOGGER_SERIAL>&value=5279"
 ```
 
 **Fallback:** Use the ShinePhone app to change the server IP manually.
@@ -67,11 +79,11 @@ curl -X PUT "http://192.168.2.252:5782/datalogger?command=register&register=18&d
 
 - Check addon logs for incoming data from the migrated datalogger
 - Verify MQTT sensors appear in HA (if ha_plugin is enabled)
-- Test a register read: `curl http://192.168.2.56:5782/inverter?command=register&register=03&inverter=BLK4CBJ08S&format=dec`
+- Test a register read: `curl http://<HA_IP>:5782/inverter?command=register&register=03&inverter=<INVERTER_SERIAL>&format=dec`
 
 ### Step 5: Migrate remaining dataloggers
 
-Once verified, change the remaining dataloggers to point to 192.168.2.56:5279.
+Once verified, change the remaining dataloggers to point to `<HA_IP>:5279`.
 
 ### Step 6: Decommission old server
 
@@ -80,5 +92,5 @@ Stop the Grott services on the TrueNAS VM.
 ## Rollback
 
 1. Stop the addon in HA
-2. Change datalogger IPs back to 192.168.2.252 via ShinePhone app
-3. Restart Grott services on the TrueNAS VM
+2. Change datalogger IPs back to your old Grott server via ShinePhone app
+3. Restart Grott services on your old server
