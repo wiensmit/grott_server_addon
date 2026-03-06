@@ -19,6 +19,15 @@ RUN curl -L -o /tmp/grott.tar.gz https://github.com/johanmeijer/grott/archive/re
     cp /tmp/grott-master/grottserver.py /app/ && \
     rm -rf /tmp/grott.tar.gz /tmp/grott-master
 
+# Patch grottserver.py to make libscrc optional (it hard-crashes without it)
+RUN python3 -c "\
+content = open('/app/grottserver.py').read(); \
+content = content.replace(\
+'import libscrc', \
+'try:\\n    import libscrc\\n    has_libscrc = True\\nexcept ImportError:\\n    has_libscrc = False\\n    print(\"WARNING: libscrc not installed, CRC checking disabled in grottserver\")', \
+1); \
+open('/app/grottserver.py','w').write(content)"
+
 # Install Python dependencies (libscrc is optional - grottserver works without it)
 RUN pip3 install --no-cache-dir --break-system-packages \
     paho-mqtt \
