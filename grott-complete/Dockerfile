@@ -19,13 +19,17 @@ RUN curl -L -o /tmp/grott.tar.gz https://github.com/johanmeijer/grott/archive/re
     cp /tmp/grott-master/grottserver.py /app/ && \
     rm -rf /tmp/grott.tar.gz /tmp/grott-master
 
-# Install Python dependencies (libscrc needs build tools for CRC support)
-RUN apk add --no-cache gcc musl-dev python3-dev && \
-    pip3 install --no-cache-dir --break-system-packages \
+# Install Python dependencies
+RUN pip3 install --no-cache-dir --break-system-packages \
     paho-mqtt \
-    requests \
-    libscrc && \
-    apk del gcc musl-dev python3-dev
+    requests
+
+# Install pure Python libscrc fallback (avoids C compilation on ARM)
+COPY libscrc_fallback.py /app/libscrc_fallback.py
+RUN python3 -c "\
+c = open('/app/grottserver.py').read(); \
+c = c.replace('import libscrc', 'try:\\n    import libscrc\\nexcept ImportError:\\n    import libscrc_fallback as libscrc\\n    print(\"Using pure Python CRC16 fallback\")', 1); \
+open('/app/grottserver.py','w').write(c)"
 
 # Note: curl must remain installed - bashio needs it for the HA Supervisor API
 
