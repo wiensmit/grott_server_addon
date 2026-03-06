@@ -31,6 +31,13 @@ c = open('/app/grottserver.py').read(); \
 c = c.replace('import libscrc', 'try:\\n    import libscrc\\nexcept ImportError:\\n    import libscrc_fallback as libscrc\\n    print(\"Using pure Python CRC16 fallback\")', 1); \
 open('/app/grottserver.py','w').write(c)"
 
+# Patch upstream grottserver.py bugs:
+# 1. Fix "cannot access local variable 'value'" on empty register responses
+# 2. Fix UTF-8 decode errors on binary data
+# 3. Fix if/elif chain bug for rectype "18"
+COPY patch_grottserver.py /tmp/patch_grottserver.py
+RUN python3 /tmp/patch_grottserver.py && rm /tmp/patch_grottserver.py
+
 # Note: curl must remain installed - bashio needs it for the HA Supervisor API
 
 WORKDIR /app
