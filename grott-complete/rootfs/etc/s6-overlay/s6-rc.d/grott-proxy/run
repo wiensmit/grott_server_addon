@@ -1,0 +1,5 @@
+#!/usr/bin/with-contenv bashio
+
+bashio::log.info "Starting Grott proxy on port 5279..."
+cd /app
+exec python3 -u grott.py -c /app/grott.ini

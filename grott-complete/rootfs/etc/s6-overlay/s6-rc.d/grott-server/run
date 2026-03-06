@@ -1,0 +1,5 @@
+#!/usr/bin/with-contenv bashio
+
+bashio::log.info "Starting Grott server API on port 5782..."
+cd /app
+exec python3 -u grottserver.py

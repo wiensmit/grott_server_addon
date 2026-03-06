@@ -1,0 +1,28 @@
+configuration:
+  gmode:
+    name: Mode
+    description: "Operating mode: proxy (recommended) or sniff"
+  ggrowattip:
+    name: Growatt Server IP
+    description: "Where the proxy forwards data. Use 127.0.0.1 for local grottserver (required for register commands). Use server.growatt.com for cloud (disables register commands)."
+  ggrowattport:
+    name: Growatt Server Port
+    description: "Port of the Growatt server"
+  verbose:
+    name: Verbose Logging
+    description: "Enable verbose logging for debugging"
+  ha_plugin:
+    name: HA Plugin
+    description: "Enable Home Assistant auto-discovery via MQTT"
+  ginvtype:
+    name: Inverter Type
+    description: "Inverter type (default, sph, spf, max)"
+  retain:
+    name: MQTT Retain
+    description: "Enable MQTT retain flag on messages"
+  mqtt:
+    name: MQTT Settings
+    description: "Manual MQTT configuration (leave empty for auto-detection from Mosquitto addon)"
+network:
+  5279/tcp: "Grott proxy port (dataloggers connect here)"
+  5782/tcp: "Grott server API port (register read/write)"

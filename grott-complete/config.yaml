@@ -1,0 +1,66 @@
+name: "Grott Complete"
+version: "1.0.0"
+slug: grott_complete
+description: "Growatt inverter monitor with proxy and server API for register read/write control"
+url: https://github.com/yourusername/grott_server_addon
+arch:
+  - aarch64
+  - amd64
+services:
+  - mqtt:need
+init: false
+map:
+  - addon_config:rw
+ports:
+  5279/tcp: 5279
+  5782/tcp: 5782
+ports_description:
+  5279/tcp: "Grott proxy - dataloggers connect here"
+  5782/tcp: "Grott server API - register read/write commands"
+startup: application
+boot: auto
+options:
+  gmode: proxy
+  ggrowattip: "127.0.0.1"
+  ggrowattport: 5781
+  verbose: false
+  ha_plugin: true
+  ginvtype: default
+  retain: false
+  mqtt: {}
+schema:
+  gmode: "list(proxy|sniff)"
+  ggrowattip: str
+  ggrowattport: port
+  verbose: bool
+  ha_plugin: bool
+  ginvtype: str
+  ginvtypemap: str?
+  retain: bool
+  gblockcmd: bool?
+  gcompat: bool?
+  gdecrypt: bool?
+  gminrecl: int?
+  ggrottip: str?
+  ggrottport: port?
+  ginverterid: str?
+  gnoipf: bool?
+  gsendbuf: bool?
+  gtime: str?
+  gtimezone: str?
+  gvalueoffset: int?
+  gmqttip: str?
+  gmqttport: str?
+  gmqttuser: str?
+  gmqttpassword: password?
+  gmqttauth: bool?
+  gmqtttopic: str?
+  gmqttinverterintopic: bool?
+  gextension: bool?
+  gextname: str?
+  gextvar: str?
+  mqtt:
+    host: str?
+    port: int?
+    user: str?
+    password: str?
