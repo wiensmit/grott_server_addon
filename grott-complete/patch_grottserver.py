@@ -93,6 +93,47 @@ if old_chain in code:
 else:
     print("WARNING: Patch 3 target not found")
 
+# =============================================================================
+# Patch 4: Reduce log noise by guarding unconditional prints with 'if verbose:'.
+#
+# Many high-frequency prints (decrypt, data received, data record, etc.) are
+# not behind verbose checks, producing huge logs even with verbose=False.
+# =============================================================================
+
+noise_patches = [
+    # decrypt() prints on every single record decryption
+    (
+        '    print("\\t - " + "Grott - data decrypted V2")',
+        '    if verbose: print("\\t - " + "Grott - data decrypted V2")',
+    ),
+    # process_data prints on every incoming data record
+    (
+        '            print(f"\\t - Grottserver - Data received from : {client_address}:{client_port}")',
+        '            if verbose: print(f"\\t - Grottserver - Data received from : {client_address}:{client_port}")',
+    ),
+    # data record type print on every 03/04/50/1b/20 record
+    (
+        '                print("\\t - Grottserver - " + header[12:16] + " data record received")',
+        '                if verbose: print("\\t - Grottserver - " + header[12:16] + " data record received")',
+    ),
+    # queue response print
+    (
+        '                print("\\t - Grottserver - Put response on queue: ", qname, " msg: ")',
+        '                if verbose: print("\\t - Grottserver - Put response on queue: ", qname, " msg: ")',
+    ),
+]
+
+patch4_count = 0
+for old, new in noise_patches:
+    if old in code:
+        code = code.replace(old, new)
+        patch4_count += 1
+
+if patch4_count > 0:
+    print(f"Patch 4 applied: guarded {patch4_count} noisy prints behind verbose check")
+else:
+    print("WARNING: Patch 4 - no noise targets found")
+
 with open('/app/grottserver.py', 'w') as f:
     f.write(code)
 
