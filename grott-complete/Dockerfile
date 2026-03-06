@@ -1,16 +1,14 @@
-ARG BUILD_FROM=ghcr.io/hassio-addons/base:14.3.3
+ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
 ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
-# Install Python 3
-RUN apk add --no-cache python3 py3-pip && \
-    ln -sf /usr/bin/python3 /usr/bin/python
+# Install Python 3 and curl
+RUN apk add --no-cache python3 py3-pip curl
 
-# Download and install grott from GitHub
-RUN apk add --no-cache curl && \
-    curl -L -o /tmp/grott.tar.gz https://github.com/johanmeijer/grott/archive/refs/heads/master.tar.gz && \
+# Download grott from GitHub
+RUN curl -L -o /tmp/grott.tar.gz https://github.com/johanmeijer/grott/archive/refs/heads/master.tar.gz && \
     mkdir -p /app && \
     tar xzf /tmp/grott.tar.gz -C /tmp && \
     cp /tmp/grott-master/grott.py /app/ && \
@@ -19,22 +17,15 @@ RUN apk add --no-cache curl && \
     cp /tmp/grott-master/grottproxy.py /app/ && \
     cp /tmp/grott-master/grottsniffer.py /app/ && \
     cp /tmp/grott-master/grottserver.py /app/ && \
-    rm -rf /tmp/grott.tar.gz /tmp/grott-master && \
-    apk del curl
+    rm -rf /tmp/grott.tar.gz /tmp/grott-master
 
-# Download grott HA extension for auto-discovery
-RUN apk add --no-cache curl && \
-    curl -L -o /app/grott_ha.py \
-    "https://raw.githubusercontent.com/egguy/grott/feature/ha-extension/examples/Home%20Assistent/grott_ha.py" && \
-    apk del curl
-
-# Install Python dependencies (libscrc needs build tools)
-RUN apk add --no-cache gcc musl-dev python3-dev && \
-    pip3 install --no-cache-dir --break-system-packages \
+# Install Python dependencies (libscrc is optional - grottserver works without it)
+RUN pip3 install --no-cache-dir --break-system-packages \
     paho-mqtt \
-    requests \
-    libscrc && \
-    apk del gcc musl-dev python3-dev
+    requests
+
+# Clean up
+RUN apk del curl
 
 WORKDIR /app
 
@@ -48,5 +39,4 @@ RUN chmod +x /app/run.sh && \
 LABEL \
     io.hass.name="Grott Complete" \
     io.hass.description="Growatt inverter monitor with proxy and server API" \
-    io.hass.type="addon" \
-    io.hass.version="${BUILD_VERSION}"
+    io.hass.type="addon"
