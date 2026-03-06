@@ -33,8 +33,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     paho-mqtt \
     requests
 
-# Clean up
-RUN apk del curl
+# Note: curl must remain installed - bashio needs it for the HA Supervisor API
 
 WORKDIR /app
 
